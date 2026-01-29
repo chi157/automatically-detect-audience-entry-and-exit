@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>後台管理 - 觀眾監控</title>
+  <style>
+    /* ...原本 CSS 不變，省略... */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Microsoft JhengHei', 'PingFang TC', 'Noto Sans TC', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    .header { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2); margin-bottom: 30px; text-align: center; }
+    h1 { color: #333; margin-bottom: 10px; font-size: 36px; }
+    .status { display: inline-block; padding: 8px 20px; border-radius: 20px; font-size: 14px; font-weight: bold; margin-top: 10px; }
+    .status.connected { background: #4ade80; color: white; }
+    .status.disconnected { background: #ef4444; color: white; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px; }
+    .stat-card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15); text-align: center; }
+    .stat-card .icon { font-size: 48px; margin-bottom: 10px; }
+    .stat-card .number { font-size: 48px; font-weight: bold; color: #667eea; margin-bottom: 5px; }
+    .stat-card .label { color: #666; font-size: 16px; }
+    .users-panel { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2); margin-bottom: 30px; }
+    .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #eee; }
+    .panel-header h2 { color: #333; font-size: 24px; }
+    .refresh-btn { background: #667eea; color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: bold; transition: all 0.3s; }
+    .refresh-btn:hover { background: #5568d3; transform: translateY(-2px); }
+    .user-list { list-style: none; }
+    .user-item { background: #f8f9fa; padding: 20px; margin-bottom: 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; transition: all 0.3s; animation: fadeIn 0.5s; }
+    .user-item:hover { background: #e9ecef; transform: translateX(5px); }
+    .user-info { display: flex; align-items: center; gap: 15px; }
+    .user-avatar { width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; font-weight: bold; }
+    .user-details { flex: 1; }
+    .user-name { font-size: 18px; font-weight: bold; color: #333; margin-bottom: 5px; }
+    .user-id { font-size: 12px; color: #999; font-family: monospace; }
+    .user-time { text-align: right; color: #666; font-size: 14px; }
+    .user-time .label { display: block; font-size: 12px; color: #999; margin-bottom: 3px; }
+    .empty-state { text-align: center; padding: 60px 20px; color: #999; }
+    .empty-state .icon { font-size: 80px; margin-bottom: 20px; opacity: 0.5; }
+    .empty-state p { font-size: 18px; }
+    .activity-log { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2); max-height: 400px; overflow-y: auto; }
+    .activity-log h2 { color: #333; font-size: 24px; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #eee; }
+    .log-item { padding: 12px; margin-bottom: 10px; border-radius: 8px; font-size: 14px; animation: fadeIn 0.3s; }
+    .log-item.join { background: #d1fae5; color: #065f46; }
+    .log-item.leave { background: #fee2e2; color: #991b1b; }
+    .log-time { color: #666; font-size: 12px; margin-left: 10px; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    .simulator { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15); margin-bottom: 30px; }
+    .simulator h3 { margin-bottom: 15px; color: #333; }
+    .simulator-controls { display: flex; gap: 10px; flex-wrap: wrap; }
+    .simulator input { flex: 1; min-width: 200px; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px; }
+    .simulator button { padding: 10px 20px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: all 0.3s; }
+    .join-btn { background: #4ade80; color: white; }
+    .join-btn:hover { background: #22c55e; }
+    .leave-btn { background: #ef4444; color: white; }
+    .leave-btn:hover { background: #dc2626; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎯 觀眾監控後台</h1>
+      <div class="status" id="status">連接中...</div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="icon">👥</div>
+        <div class="number" id="totalUsers">0</div>
+        <div class="label">目前在線</div>
+      </div>
+      <div class="stat-card">
+        <div class="icon">📊</div>
+        <div class="number" id="totalJoins">0</div>
+        <div class="label">總進入次數</div>
+      </div>
+      <div class="stat-card">
+        <div class="icon">🚪</div>
+        <div class="number" id="totalLeaves">0</div>
+        <div class="label">總離開次數</div>
+      </div>
+    </div>
+
+    <div class="simulator">
+      <h3>🧪 測試模擬器</h3>
+      <div class="simulator-controls">
+        <input type="text" id="testUsername" placeholder="輸入測試用戶名稱...">
+        <button class="join-btn" onclick="simulateJoin()">模擬進入</button>
+        <button class="leave-btn" onclick="simulateLeave()">模擬離開</button>
+      </div>
+    </div>
+
+    <div class="users-panel">
+      <div class="panel-header">
+        <h2>🎪 當前觀眾列表</h2>
+        <button class="refresh-btn" onclick="refreshUsers()">🔄 重新整理</button>
+      </div>
+      <ul class="user-list" id="userList">
+        <div class="empty-state">
+          <div class="icon">👻</div>
+          <p>目前沒有觀眾在線上</p>
+        </div>
+      </ul>
+    </div>
+
+    <div class="activity-log">
+      <h2>📋 活動記錄</h2>
+      <div id="activityLog"></div>
+    </div>
+  </div>
+
+  <script>
+    let ws;
+    let reconnectInterval = null;
+    let currentUsers = [];
+    let totalJoins = 0;
+    let totalLeaves = 0;
+    let simulatedUsers = new Map();
+
+    function connect() {
+      // 若有舊的 ws 物件，先移除所有事件並關閉
+      if (ws) {
+        ws.onopen = null;
+        ws.onclose = null;
+        ws.onerror = null;
+        ws.onmessage = null;
+        if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+          ws.close();
+        }
+      }
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.host}`;
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        updateStatus(true);
+        if (reconnectInterval) {
+          clearInterval(reconnectInterval);
+          reconnectInterval = null;
+        }
+        ws.send(JSON.stringify({ type: 'get_users' }));
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'user_joined') {
+            totalJoins++;
+            updateStats();
+            addActivityLog(`${data.username} 加入了聊天室`, 'join', data.timestamp);
+            currentUsers = data.currentUsers;
+            renderUsers();
+          } else if (data.type === 'user_left') {
+            totalLeaves++;
+            updateStats();
+            addActivityLog(`${data.username} 離開了聊天室`, 'leave', data.timestamp);
+            currentUsers = data.currentUsers;
+            renderUsers();
+          } else if (data.type === 'users_list') {
+            currentUsers = data.users;
+            renderUsers();
+            updateStats();
+          }
+        } catch (error) {
+          console.error('處理訊息錯誤:', error);
+        }
+      };
+
+      ws.onclose = () => {
+        updateStatus(false);
+        if (!reconnectInterval) {
+          reconnectInterval = setInterval(connect, 5000);
+        }
+      };
+
+      ws.onerror = () => {
+        updateStatus(false);
+      };
+    }
+
+    function updateStatus(connected) {
+      const statusEl = document.getElementById('status');
+      if (connected) {
+        statusEl.textContent = '🟢 已連接';
+        statusEl.className = 'status connected';
+      } else {
+        statusEl.textContent = '🔴 未連接';
+        statusEl.className = 'status disconnected';
+      }
+    }
+
+    function updateStats() {
+      document.getElementById('totalUsers').textContent = currentUsers.length;
+      document.getElementById('totalJoins').textContent = totalJoins;
+      document.getElementById('totalLeaves').textContent = totalLeaves;
+    }
+
+    function renderUsers() {
+      const userList = document.getElementById('userList');
+      if (currentUsers.length === 0) {
+        userList.innerHTML = `
+          <div class="empty-state">
+            <div class="icon">👻</div>
+            <p>目前沒有觀眾在線上</p>
+          </div>
+        `;
+        return;
+      }
+      userList.innerHTML = currentUsers.map(user => {
+        const joinTime = new Date(user.joinTime);
+        const duration = getDuration(joinTime);
+        const initial = user.username.charAt(0).toUpperCase();
+        return `
+          <li class="user-item">
+            <div class="user-info">
+              <div class="user-avatar">${initial}</div>
+              <div class="user-details">
+                <div class="user-name">${user.username}</div>
+                <div class="user-id">ID: ${user.id}</div>
+              </div>
+            </div>
+            <div class="user-time">
+              <span class="label">在線時長</span>
+              ${duration}
+            </div>
+          </li>
+        `;
+      }).join('');
+    }
+
+    function getDuration(joinTime) {
+      const now = new Date();
+      const diff = Math.floor((now - joinTime) / 1000);
+      if (diff < 60) return `${diff} 秒`;
+      if (diff < 3600) return `${Math.floor(diff / 60)} 分鐘`;
+      return `${Math.floor(diff / 3600)} 小時 ${Math.floor((diff % 3600) / 60)} 分鐘`;
+    }
+
+    function addActivityLog(message, type, timestamp) {
+      const logEl = document.getElementById('activityLog');
+      const time = new Date(timestamp).toLocaleTimeString('zh-TW');
+      const logItem = document.createElement('div');
+      logItem.className = `log-item ${type}`;
+      logItem.innerHTML = `
+        ${message}
+        <span class="log-time">${time}</span>
+      `;
+      logEl.insertBefore(logItem, logEl.firstChild);
+      while (logEl.children.length > 50) {
+        logEl.removeChild(logEl.lastChild);
+      }
+    }
+
+    function refreshUsers() {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'get_users' }));
+      }
+    }
+
+    function simulateJoin() {
+      const input = document.getElementById('testUsername');
+      const username = input.value.trim() || `測試用戶${Math.floor(Math.random() * 1000)}`;
+      const userId = `test_${Date.now()}`;
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          type: 'join',
+          userId: userId,
+          username: username
+        }));
+        simulatedUsers.set(userId, username);
+        input.value = '';
+      }
+    }
+
+    function simulateLeave() {
+      if (simulatedUsers.size === 0) {
+        alert('沒有可以離開的測試用戶');
+        return;
+      }
+      const [userId, username] = Array.from(simulatedUsers.entries())[0];
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          type: 'leave',
+          userId: userId
+        }));
+        simulatedUsers.delete(userId);
+      }
+    }
+
+    setInterval(() => {
+      if (currentUsers.length > 0) {
+        renderUsers();
+      }
+    }, 30000);
+
+    connect();
+  </script>
+</body>
+</html>

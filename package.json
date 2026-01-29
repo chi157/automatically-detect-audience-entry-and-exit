@@ -1,0 +1,21 @@
+{
+  "name": "audience-detection-system",
+  "version": "1.0.0",
+  "description": "Real-time audience entry and exit detection for OBS streaming",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "websocket",
+    "obs",
+    "streaming",
+    "audience"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "tmi.js": "^1.8.5",
+    "ws": "^8.16.0"
+  }
+}
