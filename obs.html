@@ -7,23 +7,18 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Microsoft JhengHei', 'PingFang TC', 'Noto Sans TC', sans-serif; background: transparent; overflow: hidden; }
-    .welcome-container { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); min-width: 350px; max-width: 98vw; width: auto; display: flex; justify-content: center; align-items: center; }
-    .welcome-message { background: linear-gradient(90deg, #ffe3ef 0%, #ffd6ec 50%, #ffeaf6 100%); border-radius: 24px; padding: 32px 60px 32px 32px; display: flex; flex-direction: row; align-items: center; box-shadow: 0 8px 32px rgba(0,0,0,0.18); animation: slideInX 0.7s cubic-bezier(0.23, 1, 0.32, 1); position: relative; overflow: hidden; min-width: 350px; max-width: 100vw; width: fit-content; border: 1.5px solid #ffd6ec; transition: width 0.2s cubic-bezier(0.23, 1, 0.32, 1); }
-    .welcome-text { color: #b84a6b; font-size: 40px; font-weight: bold; margin-bottom: 10px; text-shadow: none; position: relative; z-index: 1; text-align: left; }
-    .username { color: #b84a6b; font-size: 54px; font-weight: bold; margin-bottom: 8px; text-shadow: none; position: relative; z-index: 1; text-align: left; }
-    .sub-text { color: #b84a6b; font-size: 26px; position: relative; z-index: 1; text-align: left; }
+    .welcome-container { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); max-width: 98vw; width: auto; display: flex; justify-content: center; align-items: center; }
+    .welcome-message { background: linear-gradient(90deg, #ffe3ef 0%, #ffd6ec 50%, #ffeaf6 100%); border-radius: 24px; padding: 32px 60px 32px 32px; display: flex; flex-direction: row; align-items: center; box-shadow: 0 8px 32px rgba(0,0,0,0.18); animation: slideInX 0.7s cubic-bezier(0.23, 1, 0.32, 1); position: relative; overflow: hidden; max-width: 100vw; width: fit-content; border: 1.5px solid #ffd6ec; transition: width 0.2s cubic-bezier(0.23, 1, 0.32, 1); }
+    .welcome-text { color: #b84a6b; font-size: 40px; font-weight: bold; margin-bottom: 10px; text-shadow: none; position: relative; z-index: 1; text-align: left; white-space: nowrap; }
+    .username { color: #b84a6b; font-size: 54px; font-weight: bold; margin-bottom: 8px; text-shadow: none; position: relative; z-index: 1; text-align: left; white-space: nowrap; }
+    .sub-text { color: #b84a6b; font-size: 26px; position: relative; z-index: 1; text-align: left; white-space: nowrap; }
     .emoji { font-size: 48px; margin-bottom: 0; margin-right: 12px; animation: none; }
     @keyframes slideInX { from { transform: translateX(-80%) scale(0.95); opacity: 0; } to { transform: translateX(0) scale(1); opacity: 1; } }
     @keyframes slideOutX { from { transform: translateX(0) scale(1); opacity: 1; } to { transform: translateX(80%) scale(0.95); opacity: 0; } }
     .welcome-message.fade-out { animation: slideOutX 0.5s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
-    .stats { position: fixed; top: 20px; right: 20px; background: rgba(0, 0, 0, 0.7); color: white; padding: 15px 25px; border-radius: 15px; font-size: 20px; backdrop-filter: blur(10px); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); }
-    .stats-number { color: #4ade80; font-weight: bold; font-size: 32px; }
   </style>
 </head>
 <body>
-  <div class="stats">
-    👥 在線人數: <span class="stats-number" id="userCount">0</span>
-  </div>
 
   <div class="welcome-container" id="welcomeContainer" style="display: none;">
     <div class="welcome-message" id="welcomeMessage">
@@ -34,7 +29,7 @@
           <div class="welcome-text">歡迎</div>
         </div>
         <div class="username" id="username"></div>
-        <div class="sub-text">加入直播間！</div>
+        <div class="sub-text">加入直播間！<br>追隨我我會很愛你❤️</div>
       </div>
     </div>
   </div>
@@ -57,7 +52,7 @@
           twitchWs.close();
         }
       }
-      twitchWs = new WebSocket('ws://localhost:3301');
+      twitchWs = new WebSocket('ws://127.0.0.1:3301');
       twitchWs.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
@@ -70,63 +65,11 @@
       twitchWs.onclose = () => setTimeout(connectTwitchWs, 5000);
     }
     function playWelcomeSound() {
-      const audio = new Audio('https://cdn.pixabay.com/audio/2022/07/26/audio_124bfae5b2.mp3');
+      const audio = new Audio('/public/打鼓.mp3');
       audio.volume = 0.5;
       audio.play();
     }
     connectTwitchWs();
-
-    function connect() {
-      console.log('建立新的 WebSocket 連線');
-      if (ws) {
-        ws.onopen = null;
-        ws.onclose = null;
-        ws.onerror = null;
-        ws.onmessage = null;
-        if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
-          ws.close();
-        }
-      }
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${window.location.host}`;
-      ws = new WebSocket(wsUrl);
-
-      ws.onopen = () => {
-        console.log('已連接到伺服器');
-        if (reconnectInterval) {
-          clearInterval(reconnectInterval);
-          reconnectInterval = null;
-        }
-        ws.send(JSON.stringify({ type: 'get_users' }));
-      };
-
-      ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          if (data.type === 'user_joined') {
-            showWelcomeMessage(data.username);
-            updateUserCount(data.currentUsers.length);
-          } else if (data.type === 'user_left') {
-            updateUserCount(data.currentUsers.length);
-          } else if (data.type === 'users_list') {
-            updateUserCount(data.users.length);
-          }
-        } catch (error) {
-          console.error('處理訊息錯誤:', error);
-        }
-      };
-
-      ws.onclose = () => {
-        console.log('連線已關閉，5秒後重新連接...');
-        if (!reconnectInterval) {
-          reconnectInterval = setInterval(connect, 5000);
-        }
-      };
-
-      ws.onerror = (error) => {
-        console.error('WebSocket 錯誤:', error);
-      };
-    }
 
     function showWelcomeMessage(username) {
       messageQueue.push(username);
@@ -159,10 +102,6 @@
       container.style.display = 'none';
       isShowingMessage = false;
       processQueue();
-    }
-
-    function updateUserCount(count) {
-      document.getElementById('userCount').textContent = count;
     }
 
     connect();
