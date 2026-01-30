@@ -86,6 +86,7 @@
         <input type="text" id="testUsername" placeholder="輸入測試用戶名稱...">
         <button class="join-btn" onclick="simulateJoin()">模擬進入</button>
         <button class="leave-btn" onclick="simulateLeave()">模擬離開</button>
+        <button class="join-btn" style="background:#2176c7;" onclick="simulateFollow()">模擬追隨</button>
       </div>
     </div>
 
@@ -109,6 +110,17 @@
   </div>
 
   <script>
+        function simulateFollow() {
+          const input = document.getElementById('testUsername');
+          const username = input.value.trim() || `追隨者${Math.floor(Math.random() * 1000)}`;
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+              type: 'twitch_user_follow',
+              username: username
+            }));
+            input.value = '';
+          }
+        }
     let ws;
     let reconnectInterval = null;
     let currentUsers = [];
