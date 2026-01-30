@@ -51,10 +51,10 @@ client.on('join', (channel, username, self) => {
 client.on('message', (channel, tags, message, self) => {
   if (!self) {
     const displayName = tags['display-name'] || tags.username;
-    // broadcast({
-    //   type: 'twitch_user_join',
-    //   username: displayName
-    // });
+    broadcast({
+      type: 'twitch_user_join',
+      username: displayName
+    });
     console.log(`[Twitch] ${displayName} 發言於 ${channel}`);
   }
 });

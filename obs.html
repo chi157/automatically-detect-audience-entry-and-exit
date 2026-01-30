@@ -65,7 +65,7 @@
       twitchWs.onclose = () => setTimeout(connectTwitchWs, 5000);
     }
     function playWelcomeSound() {
-      const audio = new Audio('/public/打鼓.mp3');
+      const audio = new Audio('/drum.mp3');
       audio.volume = 0.5;
       audio.play();
     }
@@ -104,7 +104,7 @@
       processQueue();
     }
 
-    connect();
+    // connect(); // 已移除多餘的 connect 呼叫
   </script>
 </body>
 </html>

@@ -149,6 +149,33 @@ server.on('request', (req, res) => {
     filePath = './admin.html';
   }
 
+  // 如果請求 /xxx 則優先從 public 目錄找檔案
+  const publicPath = path.join(__dirname, 'public', req.url.replace(/^\//, ''));
+  if (fs.existsSync(publicPath) && fs.statSync(publicPath).isFile()) {
+    const extname = String(path.extname(publicPath)).toLowerCase();
+    const mimeTypes = {
+      '.html': 'text/html',
+      '.js': 'text/javascript',
+      '.css': 'text/css',
+      '.json': 'application/json',
+      '.png': 'image/png',
+      '.jpg': 'image/jpg',
+      '.gif': 'image/gif',
+      '.mp3': 'audio/mpeg',
+    };
+    const contentType = mimeTypes[extname] || 'application/octet-stream';
+    fs.readFile(publicPath, (error, content) => {
+      if (error) {
+        res.writeHead(500);
+        res.end('伺服器錯誤: ' + error.code, 'utf-8');
+      } else {
+        res.writeHead(200, { 'Content-Type': contentType });
+        res.end(content, 'utf-8');
+      }
+    });
+    return;
+  }
+
   const extname = String(path.extname(filePath)).toLowerCase();
   const mimeTypes = {
     '.html': 'text/html',
@@ -158,8 +185,8 @@ server.on('request', (req, res) => {
     '.png': 'image/png',
     '.jpg': 'image/jpg',
     '.gif': 'image/gif',
+    '.mp3': 'audio/mpeg',
   };
-
   const contentType = mimeTypes[extname] || 'application/octet-stream';
 
   fs.readFile(filePath, (error, content) => {
